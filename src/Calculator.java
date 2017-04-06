@@ -20,24 +20,41 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+/**
+ * A Simple 4 Function calculator.
+ * @author Benjamin
+ * 
+ */
 public class Calculator extends JFrame {
+	
+	//State of number input. Should remove Error and move it to it's own "state" section.
 	private enum NumberState{
-		START,
-		FRONT,
-		BACK,
-		ERROR
+		START, //No characters have been inputed.
+		FRONT, //Digits are being entered before the decimal point. The number is an integer.
+		BACK, //Digits are being entered after the decimal point. The number is a decimal.
+		ERROR //The input state is errored.
 	};
 	private NumberState numberState; 
 	
+	//State of the current calculation string.
 	private enum StatementState{
-		START,
-		OP,
+		START, //There is nothing to compute.
+		OP, //The calculation ends with an operator.
 	}
 	private StatementState statementState;
-	private final StringBuilder statementBuilder;
-	private final ScriptEngine statementExecutor;
-	private final ScriptEngineManager sem;
 	
+	//A buffer in which to keep the current expression to be calculated.
+	private final StringBuilder statementBuilder;
+	
+	//The engine with which to evaluate the expression.
+	private final ScriptEngine statementExecutor;
+	
+	//Not entirely sure if I need to keep this around after using it to create the ScriptEngine.
+	private final ScriptEngineManager sem;
+
+	public boolean statementContainsDivisionByZero;
+	
+	//Executes the current expression buffer and returns the result.
 	private Number evaluateCurrentStatement() throws ScriptException{
 		return (Number)statementExecutor.eval(statementBuilder.toString());		
 	}
@@ -121,8 +138,36 @@ public class Calculator extends JFrame {
 		}
 	}
 	
-
-	
+	private class OpButtonListener implements ActionListener{
+		private String valueString;
+		public OpButtonListener(String value){
+			valueString=value;
+		}
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if(numberState==NumberState.START){
+				numberState=NumberState.ERROR;
+				currentCalcField.setText("");
+				currentNumberField.setText("ERROR: No Number");	
+			}else if(numberState!=NumberState.ERROR){
+				if(statementState==StatementState.OP){
+					String expr=statementBuilder.toString();
+					char lastOpChar=expr.charAt(expr.length()-1);
+					
+					double v=Double.valueOf(currentNumberField.getText());
+					if(v==0&&lastOpChar=='/'){
+						statementContainsDivisionByZero=true;
+					}
+				}
+				statementBuilder.append(currentNumberField.getText()+valueString);
+				currentCalcField.setText(statementBuilder.toString());
+				statementState=StatementState.OP;
+				currentNumberField.setText("");
+				numberState=NumberState.START;
+			}
+			
+		}
+	}
 	private void initButtons(){
 		JPanel buttonPanel=new JPanel();
 		buttonPanel.setLayout(new GridLayout(4, 4));
@@ -131,35 +176,17 @@ public class Calculator extends JFrame {
 		buttonPanel.add(createButton("btn_Seven","7",new ValueButtonListener(7)));
 		buttonPanel.add(createButton("btn_Eight","8",new ValueButtonListener(8)));
 		buttonPanel.add(createButton("btn_Nine","9",new ValueButtonListener(9)));
-		buttonPanel.add(createButton("btn_Add","+",null));
+		buttonPanel.add(createButton("btn_Add","+",new OpButtonListener("+")));
 		
 		buttonPanel.add(createButton("btn_Four","4",new ValueButtonListener(4)));
 		buttonPanel.add(createButton("btn_Five","5",new ValueButtonListener(5)));
 		buttonPanel.add(createButton("btn_Six","6",new ValueButtonListener(6)));
-		buttonPanel.add(createButton("btn_Sub","-",null));
+		buttonPanel.add(createButton("btn_Sub","-",new OpButtonListener("-")));
 		
 		buttonPanel.add(createButton("btn_One","1",new ValueButtonListener(1)));
 		buttonPanel.add(createButton("btn_Two","2",new ValueButtonListener(2)));
 		buttonPanel.add(createButton("btn_Three","3",new ValueButtonListener(3)));
-		buttonPanel.add(createButton("btn_Div","/",new ActionListener(){
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if(numberState==NumberState.START){
-					numberState=NumberState.ERROR;
-					currentCalcField.setText("");
-					currentNumberField.setText("ERROR: No Number");	
-				}else if(numberState==NumberState.FRONT||numberState==NumberState.BACK){
-					statementBuilder.append(currentNumberField.getText()+"/");
-					currentCalcField.setText(statementBuilder.toString());
-					statementState=StatementState.OP;
-					currentNumberField.setText("");
-					numberState=NumberState.START;
-				}
-				
-			}
-			
-		}));
+		buttonPanel.add(createButton("btn_Div","/",new OpButtonListener("/")));
 		
 		buttonPanel.add(createButton("btn_Zero","0",new ValueButtonListener(0)));
 		buttonPanel.add(createButton("btn_Dot",".",new ActionListener() {
@@ -196,6 +223,8 @@ public class Calculator extends JFrame {
 				currentCalcField.setText("");
 				statementBuilder.setLength(0);
 				statementState=StatementState.START;
+				statementContainsDivisionByZero=false;
+	
 			}
 			
 		}));
@@ -211,12 +240,27 @@ public class Calculator extends JFrame {
 					}
 				}else{
 					if(numberState==NumberState.START){
-						
 						currentCalcField.setText("");
 						currentNumberField.setText("ERROR: No Number");
 						numberState=NumberState.ERROR;
 					}else if(numberState!=NumberState.ERROR){
 						try{
+							
+							if(statementState==StatementState.OP){
+								String expr=statementBuilder.toString();
+								char lastOpChar=expr.charAt(expr.length()-1);
+								
+								double v=Double.valueOf(currentNumberField.getText());
+								if(v==0&&lastOpChar=='/'){
+									statementContainsDivisionByZero=true;
+								}
+							}
+							if(statementContainsDivisionByZero){
+								currentCalcField.setText("");
+								currentNumberField.setText("ERROR: Divison By Zero");
+								numberState=NumberState.ERROR;
+								return;
+							}
 							statementBuilder.append(currentNumberField.getText());
 							Number n=evaluateCurrentStatement();
 							currentCalcField.setText("");
