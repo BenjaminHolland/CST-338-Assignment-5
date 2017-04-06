@@ -52,6 +52,8 @@ public class Calculator extends JFrame {
 	//Not entirely sure if I need to keep this around after using it to create the ScriptEngine.
 	private final ScriptEngineManager sem;
 
+	//Hack to conform to assignment guidelines concerning divison by zero.
+	//Tracks whether the current expression has a division by zero in it.
 	public boolean statementContainsDivisionByZero;
 	
 	//Executes the current expression buffer and returns the result.
@@ -59,6 +61,7 @@ public class Calculator extends JFrame {
 		return (Number)statementExecutor.eval(statementBuilder.toString());		
 	}
 	
+	//Checks what kind of a number the given number is and returns an appropriate input state.
 	private NumberState getStateForNumber(Number n){
 		String ns=n.toString();
 		if(ns.contains(".")){
@@ -68,6 +71,7 @@ public class Calculator extends JFrame {
 		}
 	}
 	
+	//Initialize the menu bar.
 	private void initMenu(){
 		JMenuBar bar=new JMenuBar();
 		
@@ -84,6 +88,7 @@ public class Calculator extends JFrame {
 		this.setJMenuBar(bar);
 	}
 	
+	//Initialize the text fields.
 	private void initDisplay(){
 		JPanel displayPanel=new JPanel();
 		displayPanel.setLayout(new BoxLayout(displayPanel,BoxLayout.Y_AXIS));
@@ -104,6 +109,7 @@ public class Calculator extends JFrame {
 		this.add(displayPanel,BorderLayout.NORTH);
 	}
 	
+	//Create a java button with the specified properties.
 	private JButton createButton(String name,String text,ActionListener listener){
 		JButton btn=new JButton();
 		btn.setName(name);
@@ -112,6 +118,12 @@ public class Calculator extends JFrame {
 		return btn;
 	}
 	
+	
+	/**
+	 * Helper class that encapsulates the behavior required for pressing a value button.
+	 * @author Benjamin
+	 *
+	 */
 	private class ValueButtonListener implements ActionListener{
 		
 		private String valueString;
@@ -120,6 +132,7 @@ public class Calculator extends JFrame {
 		}
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			
 			switch(numberState){
 			case START:
 				currentNumberField.setText(valueString);
@@ -137,7 +150,11 @@ public class Calculator extends JFrame {
 			
 		}
 	}
-	
+	/**
+	 * Helper class that encapsulates the behavior required for pressing an operation button.
+	 * @author Benjamin
+	 *
+	 */
 	private class OpButtonListener implements ActionListener{
 		private String valueString;
 		public OpButtonListener(String value){
@@ -145,11 +162,20 @@ public class Calculator extends JFrame {
 		}
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			
+			//If there isn't a number to append yet.
 			if(numberState==NumberState.START){
+				
+				//Report an error.
 				numberState=NumberState.ERROR;
 				currentCalcField.setText("");
-				currentNumberField.setText("ERROR: No Number");	
-			}else if(numberState!=NumberState.ERROR){
+				currentNumberField.setText("ERROR: No Number");
+				
+			}
+			//If there is a number to append.
+			else if(numberState!=NumberState.ERROR){
+				
+				//Update whether or not the epxression will end up dividing by zero.
 				if(statementState==StatementState.OP){
 					String expr=statementBuilder.toString();
 					char lastOpChar=expr.charAt(expr.length()-1);
@@ -159,15 +185,24 @@ public class Calculator extends JFrame {
 						statementContainsDivisionByZero=true;
 					}
 				}
+				
+				//Append the current number and the operation to the expression.
 				statementBuilder.append(currentNumberField.getText()+valueString);
+				//Update the expression display.
 				currentCalcField.setText(statementBuilder.toString());
+				
+				//Update the current statement state.
 				statementState=StatementState.OP;
+				
+				//Reset the number input.
 				currentNumberField.setText("");
 				numberState=NumberState.START;
 			}
-			
+			//If we're already errored, pressing an operation button does nothing.
 		}
 	}
+	
+	//Initialize all the buttons for the calculator.
 	private void initButtons(){
 		JPanel buttonPanel=new JPanel();
 		buttonPanel.setLayout(new GridLayout(4, 4));
@@ -228,6 +263,7 @@ public class Calculator extends JFrame {
 			}
 			
 		}));
+		
 		buttonPanel.add(createButton("btn_Equals","=",new ActionListener(){
 
 			@Override
@@ -245,7 +281,7 @@ public class Calculator extends JFrame {
 						numberState=NumberState.ERROR;
 					}else if(numberState!=NumberState.ERROR){
 						try{
-							
+							//Update whether or not the expression will end up dividing by zero.
 							if(statementState==StatementState.OP){
 								String expr=statementBuilder.toString();
 								char lastOpChar=expr.charAt(expr.length()-1);
@@ -255,12 +291,15 @@ public class Calculator extends JFrame {
 									statementContainsDivisionByZero=true;
 								}
 							}
+							//If the expression will end up dividing by zero, error instead of
+							//evaluating.
 							if(statementContainsDivisionByZero){
 								currentCalcField.setText("");
 								currentNumberField.setText("ERROR: Divison By Zero");
 								numberState=NumberState.ERROR;
 								return;
 							}
+							
 							statementBuilder.append(currentNumberField.getText());
 							Number n=evaluateCurrentStatement();
 							currentCalcField.setText("");
@@ -324,6 +363,7 @@ public class Calculator extends JFrame {
 		initDisplay();
 		initButtons();
 		
+		
 		currentNumberField=(JTextField)findByName("tf_CurNumber");
 		currentCalcField=(JTextField)findByName("tf_CurCalc");
 		pack();
@@ -334,6 +374,7 @@ public class Calculator extends JFrame {
 	
 	public void run(){
 		this.setVisible(true);
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
 	}
 	
 	public static void main(String[] args) {
