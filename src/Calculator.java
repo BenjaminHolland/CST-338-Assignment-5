@@ -1,6 +1,7 @@
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dialog;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -10,6 +11,7 @@ import java.util.Queue;
 import java.util.Set;
 
 import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.swing.BoxLayout;
@@ -17,11 +19,12 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 /**
- * A Simple 4 Function calculator.
+ * A Simple 3 Function calculator.
  * @author Benjamin
  * 
  */
@@ -78,11 +81,28 @@ public class Calculator extends JFrame {
 		JMenuItem helpItem=new JMenuItem();
 		helpItem.setName("mi_Help");
 		helpItem.setText("Help");
+		JFrame t=this;
+		helpItem.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				JOptionPane.showMessageDialog(t, "3 Function Calculator\nCreated by Benjamin Holland\nFor CST-338");
+			}
+		});
 		bar.add(helpItem);
 		
 		JMenuItem exitItem=new JMenuItem();
 		exitItem.setName("mi_Exit");
 		exitItem.setText("Exit");
+		exitItem.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.exit(0);
+			}
+			
+		});
 		bar.add(exitItem);
 		
 		this.setJMenuBar(bar);
@@ -165,12 +185,10 @@ public class Calculator extends JFrame {
 			
 			//If there isn't a number to append yet.
 			if(numberState==NumberState.START){
-				
 				//Report an error.
 				numberState=NumberState.ERROR;
 				currentCalcField.setText("");
 				currentNumberField.setText("ERROR: No Number");
-				
 			}
 			//If there is a number to append.
 			else if(numberState!=NumberState.ERROR){
@@ -352,7 +370,6 @@ public class Calculator extends JFrame {
 		//Initialize Script Evaluation Stuff
 		sem=new ScriptEngineManager();
 		statementExecutor=sem.getEngineByName("JavaScript");
-		
 		statementBuilder=new StringBuilder();
 		
 		//Initialize the display stuff.
