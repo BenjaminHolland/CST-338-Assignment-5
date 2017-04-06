@@ -208,16 +208,14 @@ public class Calculator extends JFrame {
 						currentCalcField.setText("");
 						currentNumberField.setText("ERROR: No Number");
 						numberState=NumberState.ERROR;
-					}else{
-						currentCalcField.setText("");
-						statementState=StatementState.START;
 					}
 				}else{
 					if(numberState==NumberState.START){
+						
 						currentCalcField.setText("");
 						currentNumberField.setText("ERROR: No Number");
 						numberState=NumberState.ERROR;
-					}else if(numberState==NumberState.FRONT||numberState==NumberState.BACK){
+					}else if(numberState!=NumberState.ERROR){
 						try{
 							statementBuilder.append(currentNumberField.getText());
 							Number n=evaluateCurrentStatement();
@@ -225,7 +223,7 @@ public class Calculator extends JFrame {
 							statementState=StatementState.START;
 							currentNumberField.setText(n.toString());
 							numberState=getStateForNumber(n);
-							
+							statementBuilder.setLength(0);
 						}catch(ScriptException ex){
 							currentNumberField.setText("ERROR: Script Failed");
 							numberState=NumberState.ERROR;
