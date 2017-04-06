@@ -27,10 +27,30 @@ public class Calculator extends JFrame {
 		BACK,
 		ERROR
 	};
-	private final ScriptEngineManager sem;
-	private final ScriptEngine se;
-	private final StringBuilder statementBuilder;
 	private NumberState numberState; 
+	
+	private enum StatementState{
+		START,
+		OP,
+	}
+	private StatementState statementState;
+	private final StringBuilder statementBuilder;
+	private final ScriptEngine statementExecutor;
+	private final ScriptEngineManager sem;
+	
+	private Number evaluateCurrentStatement() throws ScriptException{
+		return (Number)statementExecutor.eval(statementBuilder.toString());		
+	}
+	
+	private NumberState getStateForNumber(Number n){
+		String ns=n.toString();
+		if(ns.contains(".")){
+			return NumberState.BACK;
+		}else{
+			return NumberState.FRONT;
+		}
+	}
+	
 	private void initMenu(){
 		JMenuBar bar=new JMenuBar();
 		
@@ -101,9 +121,8 @@ public class Calculator extends JFrame {
 		}
 	}
 	
-	private Number evaluateCurrentStatement() throws ScriptException{
-		return (Number)se.eval(statementBuilder.toString());
-	}
+
+	
 	private void initButtons(){
 		JPanel buttonPanel=new JPanel();
 		buttonPanel.setLayout(new GridLayout(4, 4));
@@ -122,7 +141,25 @@ public class Calculator extends JFrame {
 		buttonPanel.add(createButton("btn_One","1",new ValueButtonListener(1)));
 		buttonPanel.add(createButton("btn_Two","2",new ValueButtonListener(2)));
 		buttonPanel.add(createButton("btn_Three","3",new ValueButtonListener(3)));
-		buttonPanel.add(createButton("btn_Div","/",null));
+		buttonPanel.add(createButton("btn_Div","/",new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(numberState==NumberState.START){
+					numberState=NumberState.ERROR;
+					currentCalcField.setText("");
+					currentNumberField.setText("ERROR: No Number");	
+				}else if(numberState==NumberState.FRONT||numberState==NumberState.BACK){
+					statementBuilder.append(currentNumberField.getText()+"/");
+					currentCalcField.setText(statementBuilder.toString());
+					statementState=StatementState.OP;
+					currentNumberField.setText("");
+					numberState=NumberState.START;
+				}
+				
+			}
+			
+		}));
 		
 		buttonPanel.add(createButton("btn_Zero","0",new ValueButtonListener(0)));
 		buttonPanel.add(createButton("btn_Dot",".",new ActionListener() {
@@ -158,6 +195,7 @@ public class Calculator extends JFrame {
 				currentNumberField.setText("");
 				currentCalcField.setText("");
 				statementBuilder.setLength(0);
+				statementState=StatementState.START;
 			}
 			
 		}));
@@ -165,36 +203,34 @@ public class Calculator extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				switch(numberState){
-				case START:
-					currentNumberField.setText("Cannot Execute Empty Statement");
-					
-					numberState=NumberState.ERROR;
-					break;
-				case FRONT:
-					statementBuilder.append(currentNumberField.getText());
-					currentCalcField.setText(statementBuilder.toString());
-					try {
-						currentNumberField.setText(evaluateCurrentStatement().toString());
-					} catch (ScriptException e) {
-						currentNumberField.setText(e.getMessage());
+				if(statementState==StatementState.START){
+					if(numberState==NumberState.START){
+						currentCalcField.setText("");
+						currentNumberField.setText("ERROR: No Number");
 						numberState=NumberState.ERROR;
-						e.printStackTrace();
+					}else{
+						currentCalcField.setText("");
+						statementState=StatementState.START;
 					}
-					break;
-				case BACK:
-					statementBuilder.append(currentNumberField.getText());
-					currentCalcField.setText(statementBuilder.toString());
-					try {
-						currentNumberField.setText(evaluateCurrentStatement().toString());
-					} catch (ScriptException e) {
-						currentNumberField.setText(e.getMessage());
+				}else{
+					if(numberState==NumberState.START){
+						currentCalcField.setText("");
+						currentNumberField.setText("ERROR: No Number");
 						numberState=NumberState.ERROR;
-						e.printStackTrace();
+					}else if(numberState==NumberState.FRONT||numberState==NumberState.BACK){
+						try{
+							statementBuilder.append(currentNumberField.getText());
+							Number n=evaluateCurrentStatement();
+							currentCalcField.setText("");
+							statementState=StatementState.START;
+							currentNumberField.setText(n.toString());
+							numberState=getStateForNumber(n);
+							
+						}catch(ScriptException ex){
+							currentNumberField.setText("ERROR: Script Failed");
+							numberState=NumberState.ERROR;
+						}
 					}
-					break;
-				case ERROR:
-					break;
 				}
 			}
 		}));
@@ -234,7 +270,7 @@ public class Calculator extends JFrame {
 	public Calculator(){
 		//Initialize Script Evaluation Stuff
 		sem=new ScriptEngineManager();
-		se=sem.getEngineByName("JavaScript");
+		statementExecutor=sem.getEngineByName("JavaScript");
 		
 		statementBuilder=new StringBuilder();
 		
@@ -249,7 +285,7 @@ public class Calculator extends JFrame {
 		currentNumberField=(JTextField)findByName("tf_CurNumber");
 		currentCalcField=(JTextField)findByName("tf_CurCalc");
 		pack();
-	
+		statementState=StatementState.START;
 		numberState=NumberState.START;
 		setResizable(false);
 	}
